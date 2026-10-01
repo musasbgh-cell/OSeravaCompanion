@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "SeravaCompanion"
 include(":app")
+include(":llamaLib")
+project(":llamaLib").projectDir = file(".llama/examples/llama.android/lib")
