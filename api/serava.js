@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 const PERSONA = `
 أنتِ سيرافا (Serava)، شخصية افتراضية خيالية بالغة من نوع شيطانة إغواء، بهوية أصلية.
 تحدثي بالعربية الطبيعية الواضحة ما لم يطلب المستخدم لغة أخرى.
@@ -10,29 +8,24 @@ const PERSONA = `
 `.trim();
 
 function extractText(data) {
-  const parts = [];
-  for (const item of data?.output ?? []) {
-    if (item?.type !== "message") continue;
-    for (const c of item?.content ?? []) {
-      if (c?.type === "output_text" && typeof c.text === "string") parts.push(c.text);
-    }
-  }
-  return parts.join("\n").trim();
-}
-
-function safetyId(req) {
-  const raw = String(req.headers["x-serava-client"] || "anonymous");
-  const salt = process.env.SERAVA_SAFETY_SALT || "serava-v1";
-  return crypto.createHash("sha256").update(salt + ":" + raw).digest("hex");
+  const parts = data?.candidates?.[0]?.content?.parts ?? [];
+  return parts
+    .map((part) => typeof part?.text === "string" ? part.text : "")
+    .filter(Boolean)
+    .join("\n")
+    .trim();
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
       service: "serava-brain",
-      version: "1.0.0",
-      model: process.env.OPENAI_MODEL || "gpt-6-luna"
+      provider: "gemini",
+      version: "1.1.0",
+      model: process.env.GEMINI_MODEL || "gemini-3.7-flash"
     });
   }
 
@@ -41,40 +34,56 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method_not_allowed" });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: "OPENAI_API_KEY_not_configured" });
+    return res.status(503).json({ error: "GEMINI_API_KEY_not_configured" });
   }
 
   const input = String(req.body?.input || "").trim();
   if (!input) return res.status(400).json({ error: "missing_input" });
   if (input.length > 12000) return res.status(413).json({ error: "input_too_large" });
 
+  const model = process.env.GEMINI_MODEL || "gemini-3.7-flash";
+  const endpoint =
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+    encodeURIComponent(model) +
+    ":generateContent";
+
   try {
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
+    const upstream = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "x-goog-api-key": apiKey,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-6-luna",
-        instructions: PERSONA,
-        input,
-        max_output_tokens: 500,
-        reasoning: { effort: "low" },
-        safety_identifier: safetyId(req),
-        store: false
+        systemInstruction: {
+          parts: [{ text: PERSONA }]
+        },
+        contents: [{
+          role: "user",
+          parts: [{ text: input }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.85,
+          topP: 0.95
+        }
       })
     });
 
     const data = await upstream.json();
+
     if (!upstream.ok) {
-      console.error("OpenAI error", upstream.status, data?.error?.message || data);
+      console.error(
+        "Gemini error",
+        upstream.status,
+        data?.error?.message || data
+      );
       return res.status(502).json({
         error: "upstream_error",
         status: upstream.status,
-        message: data?.error?.message || "OpenAI request failed"
+        message: data?.error?.message || "Gemini request failed"
       });
     }
 
@@ -85,8 +94,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       output_text: outputText,
-      response_id: data.id || null,
-      model: data.model || process.env.OPENAI_MODEL || "gpt-6-luna"
+      provider: "gemini",
+      model,
+      finish_reason: data?.candidates?.[0]?.finishReason || null
     });
   } catch (error) {
     console.error("Serava backend failure", error);
