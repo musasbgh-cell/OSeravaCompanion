@@ -1,27 +1,30 @@
-# Serava Vercel Backend
+# Serava Vercel Backend — Free Gemini Tier
 
-This repository contains a Vercel Serverless Function at `api/serava.js`.
+The Serava backend runs as a Vercel Serverless Function at `api/serava.js`.
 
 ## Deploy
 
-Import this GitHub repository into a personal Vercel project. No paid Team is required.
+Import this GitHub repository into a personal Vercel Hobby project. A paid Vercel Team is not required.
 
 ## Required environment variable
 
-Set this in Vercel Project Settings -> Environment Variables:
+In Vercel Project Settings -> Environment Variables add:
 
-- `OPENAI_API_KEY` = your OpenAI API key
+- `GEMINI_API_KEY` = your Google Gemini Developer API key
 
 Optional:
 
-- `OPENAI_MODEL` = `gpt-6-luna`
-- `SERAVA_SAFETY_SALT` = a long random secret
+- `GEMINI_MODEL` = `gemini-3.7-flash`
 
-Never put an OpenAI API key in the Android source or APK.
+Do not place the Gemini key inside the Android app or GitHub source.
 
 ## Endpoints
 
 - `GET /health`
 - `POST /v1/serava/respond`
 
-The Android app already expects `/v1/serava/respond`.
+The Android app already uses `/v1/serava/respond`.
+
+## Notes
+
+The Gemini Developer API has a free tier with usage limits. The backend automatically keeps the provider key on Vercel, not inside the APK.
