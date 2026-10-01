@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace = "com.serava.companion"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.serava.companion"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 9
         versionName = "0.9.0"
     }
