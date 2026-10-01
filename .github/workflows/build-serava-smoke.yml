@@ -1,4 +1,4 @@
-name: Build Serava Full Alpha APK
+name: Build Serava v0.9.2 APK
 
 on:
   workflow_dispatch:
@@ -49,16 +49,16 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK" | tee apk-badging.txt
           grep -q "package: name='com.serava.companion.debug'" apk-badging.txt
-          cp "$APK" Serava-v0.9.1-full-alpha.apk
-          sha256sum Serava-v0.9.1-full-alpha.apk > Serava-v0.9.1-full-alpha.apk.sha256
+          cp "$APK" Serava-v0.9.2-ui-fix.apk
+          sha256sum Serava-v0.9.2-ui-fix.apk > Serava-v0.9.2-ui-fix.apk.sha256
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Serava-v0.9.1-full-alpha
+          name: Serava-v0.9.2-ui-fix
           path: |
-            Serava-v0.9.1-full-alpha.apk
-            Serava-v0.9.1-full-alpha.apk.sha256
+            Serava-v0.9.2-ui-fix.apk
+            Serava-v0.9.2-ui-fix.apk.sha256
             apk-badging.txt
           if-no-files-found: error
           retention-days: 14
