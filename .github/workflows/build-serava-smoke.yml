@@ -1,4 +1,4 @@
-name: Build Serava v0.9.2 APK
+name: Build Serava v1 Local Brain APK
 
 on:
   workflow_dispatch:
@@ -11,10 +11,18 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
-      - name: Checkout
+      - name: Checkout Serava
         uses: actions/checkout@v4
+
+      - name: Fetch pinned llama.cpp
+        run: |
+          git clone --filter=blob:none https://github.com/ggml-org/llama.cpp.git .llama
+          cd .llama
+          git checkout f11d642a27b921cf22b6a8beb1b899f960fedcde
+          cd ..
+          sed -i 's/listOf("arm64-v8a", "x86_64")/listOf("arm64-v8a")/' .llama/examples/llama.android/lib/build.gradle.kts
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -27,20 +35,19 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1)"
           test -n "$SDKMANAGER"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
-          "$SDKMANAGER" --version
 
-      - name: Install Android packages
+      - name: Install Android and native build tools
         run: |
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          "$SDKMANAGER"             "platforms;android-36"             "build-tools;36.0.0"             "platform-tools"             "ndk;29.0.13113456"             "cmake;3.31.6"
 
-      - name: Set up Gradle 9.6
+      - name: Set up Gradle 8.14.3
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "9.6.0"
+          gradle-version: "8.14.3"
 
-      - name: Build APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Build local-AI APK
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify APK
         run: |
@@ -49,16 +56,17 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK" | tee apk-badging.txt
           grep -q "package: name='com.serava.companion.debug'" apk-badging.txt
-          cp "$APK" Serava-v0.9.2-ui-fix.apk
-          sha256sum Serava-v0.9.2-ui-fix.apk > Serava-v0.9.2-ui-fix.apk.sha256
+          cp "$APK" Serava-v1.0-local-brain-rc1.apk
+          sha256sum Serava-v1.0-local-brain-rc1.apk > Serava-v1.0-local-brain-rc1.apk.sha256
+          ls -lh Serava-v1.0-local-brain-rc1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Serava-v0.9.2-ui-fix
+          name: Serava-v1.0-local-brain-rc1
           path: |
-            Serava-v0.9.2-ui-fix.apk
-            Serava-v0.9.2-ui-fix.apk.sha256
+            Serava-v1.0-local-brain-rc1.apk
+            Serava-v1.0-local-brain-rc1.apk.sha256
             apk-badging.txt
           if-no-files-found: error
           retention-days: 14
