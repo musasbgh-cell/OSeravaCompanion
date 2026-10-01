@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "api/serava.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/v1/serava/respond",
+      "destination": "/api/serava"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/serava"
+    }
+  ]
+}
