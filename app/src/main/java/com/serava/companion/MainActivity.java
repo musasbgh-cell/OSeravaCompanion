@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -23,6 +24,8 @@ import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.view.Gravity;
+import android.view.WindowInsets;
+import android.view.Window;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -77,6 +80,9 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Window window = getWindow();
+        window.setStatusBarColor(Color.rgb(18, 7, 12));
+        window.setNavigationBarColor(Color.rgb(18, 7, 12));
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         trust = prefs.getInt(KEY_TRUST, 22);
         playful = prefs.getInt(KEY_PLAYFUL, 58);
@@ -91,8 +97,21 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private void buildUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(12), dp(16), dp(12));
+        root.setPadding(dp(16), dp(8), dp(16), dp(12));
         root.setBackgroundColor(Color.rgb(18, 7, 12));
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            int top, bottom;
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+                top = bars.top;
+                bottom = bars.bottom;
+            } else {
+                top = insets.getSystemWindowInsetTop();
+                bottom = insets.getSystemWindowInsetBottom();
+            }
+            v.setPadding(dp(16), top + dp(8), dp(16), bottom + dp(10));
+            return insets;
+        });
 
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
@@ -100,13 +119,15 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         TextView title = text("سيرافا", 29, Color.rgb(222, 184, 130));
         title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(44), 1f));
 
         Button settings = new Button(this);
         settings.setText("⚙");
         settings.setTextSize(18);
         settings.setOnClickListener(v -> showSettings());
-        header.addView(settings, new LinearLayout.LayoutParams(dp(58), dp(48)));
+        settings.setTextColor(Color.WHITE);
+        settings.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(55, 44, 49)));
+        header.addView(settings, new LinearLayout.LayoutParams(dp(54), dp(44)));
         root.addView(header, matchWrap());
 
         state = text("", 12, Color.rgb(186, 107, 126));
@@ -115,7 +136,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         avatar = new SeravaAvatarView(this);
         root.addView(avatar, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(300)));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(230)));
 
         ScrollView scroll = new ScrollView(this);
         chat = text("", 16, Color.rgb(240, 222, 215));
@@ -134,6 +155,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         input.setSingleLine(false);
         input.setMinLines(1);
         input.setMaxLines(3);
+        input.setTextSize(18);
+        input.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(205, 50, 78)));
         root.addView(input, matchWrap());
 
         LinearLayout actions = new LinearLayout(this);
@@ -142,21 +165,30 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         Button send = new Button(this);
         send.setText("إرسال");
+        send.setTextColor(Color.WHITE);
+        send.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(124, 35, 53)));
         send.setOnClickListener(v -> sendTyped());
         actions.addView(send, weighted());
 
         Button mic = new Button(this);
         mic.setText("🎙 تحدث");
+        mic.setTextColor(Color.WHITE);
+        mic.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(82, 55, 62)));
         mic.setOnClickListener(v -> startOneShotListening());
         actions.addView(mic, weighted());
 
         liveButton = new Button(this);
         liveButton.setText("◉ مباشر");
+        liveButton.setTextColor(Color.WHITE);
+        liveButton.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(82, 55, 62)));
         liveButton.setOnClickListener(v -> toggleLiveMode());
         actions.addView(liveButton, weighted());
 
-        root.addView(actions, matchWrap());
+        LinearLayout.LayoutParams actionsParams = matchWrap();
+        actionsParams.topMargin = dp(6);
+        root.addView(actions, actionsParams);
         setContentView(root);
+        root.requestApplyInsets();
     }
 
     private void restoreHistory() {
@@ -234,6 +266,14 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         playful = Math.max(0, Math.min(100, playful + (n.contains("هه") || n.contains("مزح") ? 3 : 0)));
         prefs.edit().putInt(KEY_PLAYFUL, playful).apply();
 
+        if (n.equals("الو") || n.equals("ألو") || n.equals("هلو")) {
+            avatar.setMood(SeravaAvatarView.Mood.SLY);
+            return "أنا هنا... لا تحتاج أن تختبر إن كنت أسمعك كل مرة.";
+        }
+        if (n.contains("كم عدد الايام") || n.contains("كم عدد الأيام")) {
+            avatar.setMood(SeravaAvatarView.Mood.CURIOUS);
+            return "أيام ماذا تحديدًا؟ أعطني التاريخين أو الحدث الذي تريد حساب المدة إليه، وسأحسبها لك.";
+        }
         if (n.contains("السلام") || n.contains("مرحبا") || n.contains("أهلا") || n.contains("اهلا")) {
             avatar.setMood(SeravaAvatarView.Mood.SOFT);
             return "ها أنت ذا... مرحبًا بك. كنت أتساءل متى ستتحدث معي.";
@@ -264,10 +304,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         }
         avatar.setMood(SeravaAvatarView.Mood.CURIOUS);
         String[] replies = {
-                "همم... أكمل. بدأت أفهم ما الذي يدور في رأسك.",
-                "هذا مثير للاهتمام. أخبرني أكثر، ولا تختصر الجزء المهم.",
-                "سمعتك جيدًا. لكنني أشك أن وراء كلامك شيئًا آخر.",
-                "حسنًا... لدي فضول الآن. ما الذي تريد الوصول إليه بالضبط؟"
+                "همم... لم أفهم المقصود كاملًا. قلها لي بصيغة أوضح وسأجيبك مباشرة.",
+                "أحتاج منك تفصيلًا صغيرًا فقط حتى لا أخمن. ما الشيء الذي تقصده تحديدًا؟",
+                "سمعتك، لكن السؤال ناقص قليلًا. أكمل الجملة وسألتقطها من هناك.",
+                "حسنًا... أعطني المقصود بدقة، ولا تجعلني أخمن هذه المرة."
         };
         int index = Math.abs(message.hashCode()) % replies.length;
         return replies[index];
