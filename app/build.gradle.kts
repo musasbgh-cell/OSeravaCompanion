@@ -10,8 +10,8 @@ android {
         applicationId = "com.serava.companion"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.9.1-full-alpha"
+        versionCode = 11
+        versionName = "0.9.2-ui-fix"
     }
 
     buildTypes {
