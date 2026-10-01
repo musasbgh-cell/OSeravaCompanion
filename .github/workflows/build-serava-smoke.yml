@@ -22,16 +22,18 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Show preinstalled Android SDK
+      - name: Locate Android SDK manager
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          which sdkmanager
-          sdkmanager --version
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1)"
+          test -n "$SDKMANAGER"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          "$SDKMANAGER" --version
 
       - name: Accept licenses and install Android packages
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-37" "build-tools;36.0.0" "platform-tools"
 
       - name: Set up Gradle 9.6
         uses: gradle/actions/setup-gradle@v4
