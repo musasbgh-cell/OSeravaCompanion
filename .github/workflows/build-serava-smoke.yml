@@ -1,4 +1,4 @@
-name: Build Serava Smoke APK
+name: Build Serava Full Alpha APK
 
 on:
   workflow_dispatch:
@@ -24,13 +24,12 @@ jobs:
 
       - name: Locate Android SDK manager
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1)"
           test -n "$SDKMANAGER"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
           "$SDKMANAGER" --version
 
-      - name: Accept licenses and install Android packages
+      - name: Install Android packages
         run: |
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
@@ -40,7 +39,7 @@ jobs:
         with:
           gradle-version: "9.6.0"
 
-      - name: Build debug APK
+      - name: Build APK
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Verify APK
@@ -50,16 +49,16 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK" | tee apk-badging.txt
           grep -q "package: name='com.serava.companion.debug'" apk-badging.txt
-          cp "$APK" Serava-v0.9-smoke-debug.apk
-          sha256sum Serava-v0.9-smoke-debug.apk > Serava-v0.9-smoke-debug.apk.sha256
+          cp "$APK" Serava-v0.9.1-full-alpha.apk
+          sha256sum Serava-v0.9.1-full-alpha.apk > Serava-v0.9.1-full-alpha.apk.sha256
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Serava-v0.9-smoke-debug
+          name: Serava-v0.9.1-full-alpha
           path: |
-            Serava-v0.9-smoke-debug.apk
-            Serava-v0.9-smoke-debug.apk.sha256
+            Serava-v0.9.1-full-alpha.apk
+            Serava-v0.9.1-full-alpha.apk.sha256
             apk-badging.txt
           if-no-files-found: error
           retention-days: 14
