@@ -1,5 +1,6 @@
 plugins {
-    id("com.android.application")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.jetbrains.kotlin.android)
 }
 
 android {
@@ -8,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.serava.companion"
-        minSdk = 26
+        minSdk = 33
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.9.2-ui-fix"
+        versionCode = 12
+        versionName = "1.0.0-local-brain-rc1"
     }
 
     buildTypes {
@@ -33,4 +34,19 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    kotlin {
+        jvmToolchain(17)
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+}
+
+dependencies {
+    implementation(project(":llamaLib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }
